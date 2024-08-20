@@ -16,6 +16,8 @@ def run_bot():
     voice_clients = {}
     song_queue = {}
     current_songs = {}
+    loop_status = {}  # Track loop status per guild
+    cached_streams = {}  # Cache for currently playing song streams
     yt_dlp_options = {"format": "bestaudio/best"}
     ytdl = yt_dlp.YoutubeDL(yt_dlp_options)
 
@@ -30,25 +32,38 @@ def run_bot():
 
     async def play_next(interaction: discord.Interaction):
         guild_id = interaction.guild.id
-        if song_queue[guild_id]:
-            url = song_queue[guild_id].pop(0)
-            await play_song(interaction, url)
+        if loop_status.get(guild_id, False):  # If loop is enabled
+            # If looping, use the cached stream
+            stream_url = cached_streams.get(guild_id)
+            if stream_url:
+                await play_song(interaction, stream_url, cached=True)
         else:
-            await interaction.followup.send("The queue is empty.")
+            if song_queue[guild_id]:
+                url = song_queue[guild_id].pop(0)
+                await play_song(interaction, url)
+            else:
+                await interaction.followup.send("The queue is empty.")
 
-    async def play_song(interaction: discord.Interaction, url: str):
+    async def play_song(interaction: discord.Interaction, url: str, cached=False):
         guild_id = interaction.guild.id
         voice_client = voice_clients[guild_id]
 
         try:
-            loop = asyncio.get_event_loop()
-            data = await loop.run_in_executor(None, lambda: ytdl.extract_info(url, download=False))
+            if not cached:  # Only download if not using a cached stream
+                loop = asyncio.get_event_loop()
+                data = await loop.run_in_executor(None, lambda: ytdl.extract_info(url, download=False))
 
-            song = data['url']
-            title = data['title']
-            current_songs[guild_id] = title  # Store the currently playing song
+                stream_url = data['url']
+                title = data['title']
+                current_songs[guild_id] = (title, url)  # Store the currently playing song
+                cached_streams[guild_id] = stream_url  # Cache the stream URL for reuse
 
-            player = discord.FFmpegOpusAudio(song, **ffmpeg_options)
+                await interaction.followup.send(f"Now playing: {title}")
+            else:
+                stream_url = cached_streams[guild_id]  # Use the cached stream URL
+                title = current_songs[guild_id][0]  # Use the cached title
+
+            player = discord.FFmpegOpusAudio(stream_url, **ffmpeg_options)
 
             def after_play(error):
                 if error:
@@ -61,7 +76,6 @@ def run_bot():
                     print(f"Error handling after play: {e}")
 
             voice_client.play(player, after=after_play)
-            await interaction.followup.send(f"Now playing: {title}")
 
         except Exception as e:
             print(f"An error occurred: {e}")
@@ -79,6 +93,8 @@ def run_bot():
                 await voice_client.guild.change_voice_state(channel=channel, self_deaf=True)
                 voice_clients[guild_id] = voice_client
                 song_queue[guild_id] = []
+                loop_status[guild_id] = False  # Initialize loop status
+                cached_streams[guild_id] = None  # Initialize the cache
             else:
                 await interaction.followup.send("You are not connected to a voice channel.")
                 return
@@ -96,7 +112,7 @@ def run_bot():
     async def playing(interaction: discord.Interaction):
         guild_id = interaction.guild.id
         if guild_id in current_songs and current_songs[guild_id]:
-            await interaction.response.send_message(f"Currently playing: {current_songs[guild_id]}")
+            await interaction.response.send_message(f"Currently playing: {current_songs[guild_id][0]}")
         else:
             await interaction.response.send_message("No song is currently playing.")
 
@@ -135,10 +151,12 @@ def run_bot():
     @bot.tree.command(name="stop", description="Stop the current song")
     async def stop(interaction: discord.Interaction):
         try:
-            if interaction.guild.id in voice_clients:
+            guild_id = interaction.guild.id
+            if guild_id in voice_clients:
                 voice_client = voice_clients[interaction.guild.id]
                 voice_client.stop()
                 song_queue[interaction.guild.id] = []  # Clear the queue
+                cached_streams[guild_id] = None  # Clear the cache
                 # del voice_clients[interaction.guild.id]
                 await interaction.response.send_message("Song stopped and queue cleared.")
             else:
@@ -150,11 +168,14 @@ def run_bot():
     @bot.tree.command(name="leave", description="Make the bot leave")
     async def leave(interaction: discord.Interaction):
         try:
-            if interaction.guild.id in voice_clients:
+            guild_id = interaction.guild.id
+            if guild_id in voice_clients:
                 voice_client = voice_clients[interaction.guild.id]
                 await voice_client.disconnect()
-                del voice_clients[interaction.guild.id]
-                del song_queue[interaction.guild.id]
+                del voice_clients[guild_id]
+                del song_queue[guild_id]
+                del loop_status[guild_id]  # Remove loop status
+                cached_streams[guild_id] = None  # Clear the cache
                 await interaction.response.send_message("Left the voice channel.")
             else:
                 await interaction.response.send_message("Not connected to a voice channel.")
@@ -206,24 +227,12 @@ def run_bot():
         else:
             await interaction.response.send_message("The queue is currently empty, nothing to shuffle.")
 
-    # todo: add search function
-    @bot.tree.command(name="search", description="Search for a song on YouTube")
-    async def search(interaction: discord.Interaction, query: str):
-        await interaction.response.send_message(f"To be implemented...")
-
-    # todo: add loop functionality
-    @bot.tree.command(name="loop", description="Loop current song")
+    @bot.tree.command(name="loop", description="Toggle loop for the current song")
     async def loop(interaction: discord.Interaction):
         guild_id = interaction.guild.id
-        if guild_id in voice_clients:
-            voice_client = voice_clients[guild_id]
-            if voice_client.is_playing():
-                song_queue[guild_id].insert(0, current_songs[guild_id])
-                await interaction.response.send_message("The current song has been added to the queue.")
-            else:
-                await interaction.response.send_message("No song is currently playing.")
-        else:
-            await interaction.response.send_message("Not connected to a voice channel.")
+        loop_status[guild_id] = not loop_status.get(guild_id, False)
+        status = "enabled" if loop_status[guild_id] else "disabled"
+        await interaction.response.send_message(f"Looping is now {status}.")
 
     bot.run(TOKEN)
 
