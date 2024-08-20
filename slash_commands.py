@@ -18,6 +18,7 @@ def run_bot():
     current_songs = {}
     loop_status = {}  # Track loop status per guild
     cached_streams = {}  # Cache for currently playing song streams
+    processing_flags = {}  # Track if a song is currently being processed
     yt_dlp_options = {"format": "bestaudio/best"}
     ytdl = yt_dlp.YoutubeDL(yt_dlp_options)
 
@@ -33,6 +34,9 @@ def run_bot():
     async def play_next(interaction: discord.Interaction):
         guild_id = interaction.guild.id
 
+        # Set processing flag to True to prevent other operations
+        processing_flags[guild_id] = True
+
         if loop_status.get(guild_id, False):  # If loop is enabled
             stream_url = cached_streams.get(guild_id)
             if stream_url:
@@ -45,6 +49,9 @@ def run_bot():
                 await bot.change_presence(status=None)
                 current_songs[guild_id] = None
                 await interaction.followup.send("The queue is empty.")
+        
+        # Clear processing flag
+        processing_flags[guild_id] = False
 
     async def play_song(interaction: discord.Interaction, url: str, cached=False):
         guild_id = interaction.guild.id
@@ -68,9 +75,10 @@ def run_bot():
             def after_play(error):
                 if error:
                     print(f"Error in after_play: {error}")
-                if voice_client.is_playing():
-                    print("Voice client is still playing, returning.")
-                    return  # Prevent double execution
+                # Check if another song is currently being processed
+                if processing_flags.get(guild_id, False):
+                    print("Another song is being processed, returning.")
+                    return
                 coro = play_next(interaction)
                 fut = asyncio.run_coroutine_threadsafe(coro, bot.loop)
                 try:
