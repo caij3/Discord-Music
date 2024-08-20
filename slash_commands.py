@@ -56,10 +56,7 @@ def run_bot():
 
                 stream_url = data['url']
                 title = data['title']
-                current_songs[guild_id] = (title, url)  # Update the current song
                 cached_streams[guild_id] = stream_url
-
-                await bot.change_presence(activity=discord.Activity(type=discord.ActivityType.custom, name="custom", state="Now playing: " + title))
 
             else:
                 stream_url = cached_streams[guild_id]
@@ -80,6 +77,8 @@ def run_bot():
                     print(f"Error handling after play: {e}")
 
             voice_client.play(player, after=after_play)
+            current_songs[guild_id] = (title, url)  # Update the current song
+            await bot.change_presence(activity=discord.Activity(type=discord.ActivityType.custom, name="custom", state="Now playing: " + title))
 
             if not cached:
                 await interaction.followup.send(f"Now playing: {title}")
