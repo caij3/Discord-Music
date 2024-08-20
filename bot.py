@@ -1,3 +1,5 @@
+# THIS IS THE OLD VERSION THAT DOES NOT USE SLASH COMMANDS
+
 import discord
 import os
 import asyncio
@@ -15,7 +17,8 @@ def run_bot():
     yt_dlp_options = {"format": "bestaudio/best"}
     ytdl = yt_dlp.YoutubeDL(yt_dlp_options)
 
-    ffmpeg_options = {'options': '-vn'}
+    ffmpeg_options = {'before_options': '-reconnect 1 -reconnect_streamed 1 -reconnect_delay_max 5',
+                      'options': '-vn -af "volume=0.25"'}
 
     @client.event
     async def on_ready():
