@@ -43,6 +43,7 @@ def run_bot():
                 await play_song(interaction, url)
             else:
                 await bot.change_presence(status=None)
+                current_songs[guild_id] = None
                 await interaction.followup.send("The queue is empty.")
 
     async def play_song(interaction: discord.Interaction, url: str, cached=False):
@@ -68,6 +69,7 @@ def run_bot():
                 if error:
                     print(f"Error in after_play: {error}")
                 if voice_client.is_playing():
+                    print("Voice client is still playing, returning.")
                     return  # Prevent double execution
                 coro = play_next(interaction)
                 fut = asyncio.run_coroutine_threadsafe(coro, bot.loop)
