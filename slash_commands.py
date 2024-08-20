@@ -32,8 +32,8 @@ def run_bot():
 
     async def play_next(interaction: discord.Interaction):
         guild_id = interaction.guild.id
+
         if loop_status.get(guild_id, False):  # If loop is enabled
-            # If looping, use the cached stream
             stream_url = cached_streams.get(guild_id)
             if stream_url:
                 await play_song(interaction, stream_url, cached=True)
@@ -42,6 +42,7 @@ def run_bot():
                 url = song_queue[guild_id].pop(0)
                 await play_song(interaction, url)
             else:
+                await bot.change_presence(status=None)
                 await interaction.followup.send("The queue is empty.")
 
     async def play_song(interaction: discord.Interaction, url: str, cached=False):
@@ -49,25 +50,28 @@ def run_bot():
         voice_client = voice_clients[guild_id]
 
         try:
-            if not cached:  # Only download if not using a cached stream
+            if not cached:
                 loop = asyncio.get_event_loop()
                 data = await loop.run_in_executor(None, lambda: ytdl.extract_info(url, download=False))
 
                 stream_url = data['url']
                 title = data['title']
-                current_songs[guild_id] = (title, url)  # Store the currently playing song
-                cached_streams[guild_id] = stream_url  # Cache the stream URL for reuse
+                current_songs[guild_id] = (title, url)  # Update the current song
+                cached_streams[guild_id] = stream_url
 
-                await interaction.followup.send(f"Now playing: {title}")
+                await bot.change_presence(activity=discord.Activity(type=discord.ActivityType.custom, name="custom", state="Now playing: " + title))
+
             else:
-                stream_url = cached_streams[guild_id]  # Use the cached stream URL
-                title = current_songs[guild_id][0]  # Use the cached title
+                stream_url = cached_streams[guild_id]
+                title = current_songs[guild_id][0]
 
             player = discord.FFmpegOpusAudio(stream_url, **ffmpeg_options)
 
             def after_play(error):
                 if error:
                     print(f"Error in after_play: {error}")
+                if voice_client.is_playing():
+                    return  # Prevent double execution
                 coro = play_next(interaction)
                 fut = asyncio.run_coroutine_threadsafe(coro, bot.loop)
                 try:
@@ -77,13 +81,16 @@ def run_bot():
 
             voice_client.play(player, after=after_play)
 
+            if not cached:
+                await interaction.followup.send(f"Now playing: {title}")
+
         except Exception as e:
-            print(f"An error occurred: {e}")
+            print(f"An error occurred in play_song: {e}")
             await interaction.followup.send("Something went wrong while trying to play the song.")
 
     @bot.tree.command(name="play", description="Play a song from a URL")
     async def play(interaction: discord.Interaction, url: str):
-        await interaction.response.defer()  # Defer the response to allow time for processing
+        await interaction.response.defer()
 
         guild_id = interaction.guild.id
         if guild_id not in voice_clients:
@@ -93,8 +100,8 @@ def run_bot():
                 await voice_client.guild.change_voice_state(channel=channel, self_deaf=True)
                 voice_clients[guild_id] = voice_client
                 song_queue[guild_id] = []
-                loop_status[guild_id] = False  # Initialize loop status
-                cached_streams[guild_id] = None  # Initialize the cache
+                loop_status[guild_id] = False
+                cached_streams[guild_id] = None
             else:
                 await interaction.followup.send("You are not connected to a voice channel.")
                 return
@@ -104,9 +111,8 @@ def run_bot():
         if voice_client.is_playing():
             await interaction.followup.send("Already playing a song. Adding to the queue.")
             song_queue[guild_id].append(url)
-            return
-
-        await play_song(interaction, url)
+        else:
+            await play_song(interaction, url)
 
     @bot.tree.command(name="playing", description="Show the currently playing song")
     async def playing(interaction: discord.Interaction):
@@ -129,7 +135,7 @@ def run_bot():
             else:
                 await interaction.response.send_message("Not connected to a voice channel.")
         except Exception as e:
-            print(f"An error occurred: {e}")
+            print(f"An error occurred in pause: {e}")
             await interaction.response.send_message("Something went wrong while trying to pause the song.")
 
     @bot.tree.command(name="resume", description="Resume the paused song")
@@ -145,7 +151,7 @@ def run_bot():
             else:
                 await interaction.response.send_message("Not connected to a voice channel.")
         except Exception as e:
-            print(f"An error occurred: {e}")
+            print(f"An error occurred in resume: {e}")
             await interaction.response.send_message("Something went wrong while trying to resume the song.")
 
     @bot.tree.command(name="stop", description="Stop the current song")
@@ -162,7 +168,7 @@ def run_bot():
             else:
                 await interaction.response.send_message("Not connected to a voice channel.")
         except Exception as e:
-            print(f"An error occurred: {e}")
+            print(f"An error occurred in stop: {e}")
             await interaction.response.send_message("Something went wrong while trying to stop the song.")
 
     @bot.tree.command(name="leave", description="Make the bot leave")
@@ -180,7 +186,7 @@ def run_bot():
             else:
                 await interaction.response.send_message("Not connected to a voice channel.")
         except Exception as e:
-            print(f"An error occurred: {e}")
+            print(f"An error occurred in leave: {e}")
             await interaction.response.send_message("Something went wrong while trying to leave the voice channel.")
 
     @bot.tree.command(name="queue", description="View the current song queue")
@@ -202,6 +208,7 @@ def run_bot():
         else:
             await interaction.response.send_message("The queue is currently empty, nothing to clear.")
 
+    # todo: skip causes weird interactions
     @bot.tree.command(name="skip", description="Skip the currently playing song")
     async def skip(interaction: discord.Interaction):
         await interaction.response.defer()
