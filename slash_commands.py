@@ -32,7 +32,7 @@ def run_bot():
                 title = data.get('title', 'Unknown Title')
 
                 voice_client = voice_clients[guild_id]
-                player = discord.FFmpegPCMAudio(data['url'], **ffmpeg_options)
+                player = discord.FFmpegOpusAudio(data['url'], **ffmpeg_options)
 
                 def on_song_end(error):
                     if error:
