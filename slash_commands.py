@@ -172,7 +172,6 @@ def run_bot():
                 voice_client.stop()
                 song_queue[interaction.guild.id] = []  # Clear the queue
                 cached_streams[guild_id] = None  # Clear the cache
-                # del voice_clients[interaction.guild.id]
                 await interaction.response.send_message("Song stopped and queue cleared.")
             else:
                 await interaction.response.send_message("Not connected to a voice channel.")
@@ -217,7 +216,6 @@ def run_bot():
         else:
             await interaction.response.send_message("The queue is currently empty, nothing to clear.")
 
-    # todo: skip causes weird interactions
     @bot.tree.command(name="skip", description="Skip the currently playing song")
     async def skip(interaction: discord.Interaction):
         await interaction.response.defer()
