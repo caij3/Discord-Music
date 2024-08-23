@@ -25,7 +25,16 @@ def run_bot():
     cached_streams = {}  # Cache for currently playing song streams
     processing_flags = {}  # Track if a song is currently being processed
 
-    yt_dlp_options = {"format": "bestaudio/best"}
+    #yt_dlp_options = {"format": "bestaudio/best"}
+    yt_dlp_options = {
+        'format': 'bestaudio/best',
+        'outtmpl': '%(extractor)s-%(id)s-%(title)s.%(ext)s',
+        'restrictfilenames': True,
+        'noplaylist': True,
+        'ignoreerrors': False,
+        'default_search': 'auto',
+        'source_address': '0.0.0.0',  # bind to ipv4 since ipv6 addresses cause issues sometimes
+    }
     ytdl = yt_dlp.YoutubeDL(yt_dlp_options)
 
     ffmpeg_options = {'before_options': '-reconnect 1 -reconnect_streamed 1 -reconnect_delay_max 5',
@@ -137,7 +146,7 @@ def run_bot():
     async def playing(interaction: discord.Interaction):
         guild_id = interaction.guild.id
         if guild_id in current_songs and current_songs[guild_id]:
-            await interaction.response.send_message(f"Currently playing: {current_songs[guild_id][0]}")
+            await interaction.response.send_message(f"Currently playing: {current_songs[guild_id][0]}\n{current_songs[guild_id][1]}")
         else:
             await interaction.response.send_message("No song is currently playing.")
 
