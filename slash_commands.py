@@ -5,6 +5,7 @@ import yt_dlp
 import random
 from dotenv import load_dotenv
 from discord.ext import commands
+import urllib.parse, urllib.request, re
 
 def run_bot():
     load_dotenv()
@@ -13,17 +14,22 @@ def run_bot():
     intents.message_content = True
     bot = commands.Bot(command_prefix='!', intents=intents)
 
+    yt_base_url = "https://www.youtube.com/"
+    yt_results_url = yt_base_url + "results?"
+    yt_watch_url = yt_base_url + "watch?v="
+
     voice_clients = {}
     song_queue = {}
     current_songs = {}
     loop_status = {}  # Track loop status per guild
     cached_streams = {}  # Cache for currently playing song streams
     processing_flags = {}  # Track if a song is currently being processed
+
     yt_dlp_options = {"format": "bestaudio/best"}
     ytdl = yt_dlp.YoutubeDL(yt_dlp_options)
 
     ffmpeg_options = {'before_options': '-reconnect 1 -reconnect_streamed 1 -reconnect_delay_max 5',
-                      'options': '-vn -af "volume=0.25"'}
+                      'options': '-vn -filter:a "volume=0.50"'}
 
     @bot.event
     async def on_ready():
@@ -59,6 +65,9 @@ def run_bot():
 
         try:
             if not cached:
+                if yt_base_url not in url:
+                    url = _search_url(url)
+
                 loop = asyncio.get_event_loop()
                 data = await loop.run_in_executor(None, lambda: ytdl.extract_info(url, download=False))
 
@@ -119,6 +128,7 @@ def run_bot():
 
         if voice_client.is_playing():
             await interaction.followup.send("Already playing a song. Adding to the queue.")
+            print(url)
             song_queue[guild_id].append(url)
         else:
             await play_song(interaction, url)
@@ -247,6 +257,32 @@ def run_bot():
         loop_status[guild_id] = not loop_status.get(guild_id, False)
         status = "enabled" if loop_status[guild_id] else "disabled"
         await interaction.response.send_message(f"Looping is now {status}.")
+
+    @bot.tree.command(name="search", description="Search for a song on YouTube")
+    async def search(interaction: discord.Interaction, query: str):
+        try:
+            query_string = urllib.parse.urlencode({"search_query": query})
+            html_content = urllib.request.urlopen(yt_results_url + query_string)
+            search_results = re.findall(r'/watch\?v=(.{11})', html_content.read().decode())
+
+            if not search_results:
+                await interaction.response.send_message("No results found.")
+                return
+            
+            await interaction.response.send_message("Search results:\n" + yt_watch_url + search_results[0])
+        except Exception as e:
+            print(f"An error occurred in search: {e}")
+            await interaction.response.send_message("Something went wrong while trying to search for the song.")
+
+    def _search_url(query: str):
+        query_string = urllib.parse.urlencode({"search_query": query})
+        html_content = urllib.request.urlopen(yt_results_url + query_string)
+        search_results = re.findall(r'/watch\?v=(.{11})', html_content.read().decode())
+
+        if not search_results:
+            return None
+
+        return yt_watch_url + search_results[0]
 
     bot.run(TOKEN)
 
