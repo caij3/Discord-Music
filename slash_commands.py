@@ -77,7 +77,7 @@ def run_bot():
                 if yt_base_url not in url:
                     url = _search_url(url)
                 
-                if "list=" in url:
+                if "playlist?" in url:
                     await interaction.followup.send("Cannot play playlists. Please provide a single video URL.")
                     print("Playlist: " + url)
                     return
