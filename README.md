@@ -5,5 +5,4 @@ This code is for educational purposes ONLY. Anything produced using this code sh
   * Add Readme file
 
 ##Future updates:
-  * Search by query
   * Add Docker integration
