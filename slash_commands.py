@@ -298,6 +298,18 @@ def run_bot():
 
         return yt_watch_url + search_results[0]
 
+    @bot.event
+    async def on_message(message):
+        try:
+            if message.author == bot.user:
+                return
+            
+            if message.guild is None:  # Check if the message is in a DM
+                print(f"DM from {message.author.name}: {message.content}")
+                await message.author.send("I can't respond to messages dumbass.")
+        except Exception as e:
+            print(e)
+
     bot.run(TOKEN)
 
 if __name__ == "__main__":
