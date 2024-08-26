@@ -7,7 +7,6 @@ This code is for educational purposes ONLY. Anything produced using this code sh
 ## Future updates:
   * Add Docker integration
   * Add web interface
-  * Add quiet mode
 
 ## Known bugs:
   * Reconnecting after Discord disconnects sometimes causes music to not play
