@@ -231,14 +231,27 @@ def run_bot():
         else:
             await interaction.response.send_message("The queue is currently empty.")
 
-    @bot.tree.command(name="clear_queue", description="Clear the current song queue")
-    async def clear_queue(interaction: discord.Interaction):
+    @bot.tree.command(name="clear", description="Clear the current song queue")
+    async def clear(interaction: discord.Interaction):
         guild_id = interaction.guild.id
         if guild_id in song_queue and song_queue[guild_id]:
             song_queue[guild_id] = []
             await interaction.response.send_message("The queue has been cleared.")
         else:
             await interaction.response.send_message("The queue is currently empty, nothing to clear.")
+
+    @bot.tree.command(name="remove", description="Remove a song from the queue")
+    async def remove(interaction: discord.Interaction, index: int):
+        guild_id = interaction.guild.id
+        if guild_id in song_queue and song_queue[guild_id]:
+            if index < 1 or index > len(song_queue[guild_id]):
+                await interaction.response.send_message("Invalid index.")
+                return
+
+            removed_url = song_queue[guild_id].pop(index - 1)
+            await interaction.response.send_message(f"Removed: {removed_url}")
+        else:
+            await interaction.response.send_message("The queue is currently empty.")
 
     @bot.tree.command(name="skip", description="Skip the currently playing song")
     async def skip(interaction: discord.Interaction):
@@ -265,12 +278,12 @@ def run_bot():
         else:
             await interaction.response.send_message("The queue is currently empty, nothing to shuffle.")
 
-    @bot.tree.command(name="loop", description="Toggle loop for the current song")
-    async def loop(interaction: discord.Interaction):
+    @bot.tree.command(name="repeat", description="Toggle repeat for the current song")
+    async def repeat(interaction: discord.Interaction):
         guild_id = interaction.guild.id
         loop_status[guild_id] = not loop_status.get(guild_id, False)
         status = "enabled" if loop_status[guild_id] else "disabled"
-        await interaction.response.send_message(f"Looping is now {status}.")
+        await interaction.response.send_message(f"Repeating status is now {status}.")
 
     @bot.tree.command(name="search", description="Search for a song on YouTube")
     async def search(interaction: discord.Interaction, query: str):
