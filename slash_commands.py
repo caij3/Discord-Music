@@ -61,7 +61,6 @@ def run_bot():
                 url = song_queue[guild_id].pop(0)
                 await play_song(interaction, url)
             else:
-                # await bot.change_presence(status=None)
                 current_songs[guild_id] = None
                 await interaction.followup.send("The queue is empty.")
         
@@ -111,7 +110,6 @@ def run_bot():
 
             voice_client.play(player, after=after_play)
             current_songs[guild_id] = (title, url)  # Update the current song
-            # await bot.change_presence(activity=discord.Activity(type=discord.ActivityType.custom, name="custom", state="Playing: " + title))
 
             if not cached:
                 await interaction.followup.send(f"Playing: {title}")
