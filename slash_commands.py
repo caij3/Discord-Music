@@ -123,6 +123,22 @@ def run_bot():
         await interaction.response.defer()
 
         guild_id = interaction.guild.id
+        connected = await _join_vc(interaction)
+
+        if not connected:
+            return
+
+        voice_client = voice_clients[guild_id]
+
+        if voice_client.is_playing():
+            await interaction.followup.send("Already playing a song. Adding to the queue.")
+            print(url)
+            song_queue[guild_id].append(url)
+        else:
+            await play_song(interaction, url)
+
+    async def _join_vc(interaction: discord.Interaction):
+        guild_id = interaction.guild.id
         if guild_id not in voice_clients:
             if interaction.user.voice:
                 channel = interaction.user.voice.channel
@@ -134,16 +150,8 @@ def run_bot():
                 cached_streams[guild_id] = None
             else:
                 await interaction.followup.send("You are not connected to a voice channel.")
-                return
-
-        voice_client = voice_clients[guild_id]
-
-        if voice_client.is_playing():
-            await interaction.followup.send("Already playing a song. Adding to the queue.")
-            print(url)
-            song_queue[guild_id].append(url)
-        else:
-            await play_song(interaction, url)
+                return False
+        return True
 
     @bot.tree.command(name="playing", description="Show the currently playing song")
     async def playing(interaction: discord.Interaction):
@@ -308,6 +316,37 @@ def run_bot():
             return None
 
         return yt_watch_url + search_results[0]
+
+    # @bot.tree.command(name="playfile", description="Play a file")
+    # async def playfile(interaction: discord.Interaction, file: str):
+    #     await interaction.response.defer()
+
+    #     guild_id = interaction.guild.id
+    #     await _join_vc(interaction)
+
+    #     try:
+    #         # Use interaction.guild instead of guild_id for voice_client lookup
+    #         voice_client = discord.utils.get(bot.voice_clients, guild=interaction.guild)
+            
+    #         if voice_client is None:
+    #             await interaction.followup.send("Not connected to a voice channel.")
+    #             return
+
+    #         # Check if the file exists
+    #         if not os.path.exists(file):
+    #             await interaction.followup.send(f"File not found: {file}")
+    #             return
+
+    #         if voice_client and not voice_client.is_playing():
+    #             print(f"Playing file: {file}")
+    #             source = discord.FFmpegOpusAudio(file)  # You can specify FFmpeg's path if needed
+    #             voice_client.play(source)
+    #             await interaction.followup.send(f"Playing file: {file}")
+    #         else:
+    #             await interaction.followup.send("A song is already playing.")
+    #     except Exception as e:
+    #         print(f"An error occurred in playfile: {e}")
+    #         await interaction.followup.send("Something went wrong while trying to play the file.")
 
     @bot.event
     async def on_message(message):
