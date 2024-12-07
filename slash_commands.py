@@ -317,37 +317,6 @@ def run_bot():
 
         return yt_watch_url + search_results[0]
 
-    # @bot.tree.command(name="playfile", description="Play a file")
-    # async def playfile(interaction: discord.Interaction, file: str):
-    #     await interaction.response.defer()
-
-    #     guild_id = interaction.guild.id
-    #     await _join_vc(interaction)
-
-    #     try:
-    #         # Use interaction.guild instead of guild_id for voice_client lookup
-    #         voice_client = discord.utils.get(bot.voice_clients, guild=interaction.guild)
-            
-    #         if voice_client is None:
-    #             await interaction.followup.send("Not connected to a voice channel.")
-    #             return
-
-    #         # Check if the file exists
-    #         if not os.path.exists(file):
-    #             await interaction.followup.send(f"File not found: {file}")
-    #             return
-
-    #         if voice_client and not voice_client.is_playing():
-    #             print(f"Playing file: {file}")
-    #             source = discord.FFmpegOpusAudio(file)  # You can specify FFmpeg's path if needed
-    #             voice_client.play(source)
-    #             await interaction.followup.send(f"Playing file: {file}")
-    #         else:
-    #             await interaction.followup.send("A song is already playing.")
-    #     except Exception as e:
-    #         print(f"An error occurred in playfile: {e}")
-    #         await interaction.followup.send("Something went wrong while trying to play the file.")
-
     @bot.event
     async def on_message(message):
         try:
