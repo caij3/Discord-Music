@@ -34,7 +34,8 @@ TOKEN=your-bot-token-here
 
 ### 1. Clone the repository
 ```bash
-git clone https://github.com/yourusername/discord-music-bot.git cd discord-music-bot
+git clone https://github.com/caij3/Discord-Music.git
+cd discord-music-bot
 ```
 
 
@@ -70,19 +71,19 @@ The bot should now be running and connected to your Discord server.
 
 Here are the available commands for the bot:
 
-- `!play <url>`: Play a song from a YouTube URL.
-- `!playing`: Show the currently playing song.
-- `!pause`: Pause the current song.
-- `!resume`: Resume the paused song.
-- `!stop`: Stop the current song and clear the queue.
-- `!leave`: Make the bot leave the voice channel.
-- `!queue`: View the current song queue.
-- `!clear`: Clear the song queue.
-- `!remove <index>`: Remove a song from the queue by its index.
-- `!skip`: Skip the currently playing song.
-- `!shuffle`: Shuffle the song queue.
-- `!repeat`: Toggle repeat for the current song.
-- `!search <query>`: Search for a song on YouTube.
+- `/play <url>`: Play a song from a YouTube URL.
+- `/playing`: Show the currently playing song.
+- `/pause`: Pause the current song.
+- `/resume`: Resume the paused song.
+- `/stop`: Stop the current song and clear the queue.
+- `/leave`: Make the bot leave the voice channel.
+- `/queue`: View the current song queue.
+- `/clear`: Clear the song queue.
+- `/remove <index>`: Remove a song from the queue by its index.
+- `/skip`: Skip the currently playing song.
+- `/shuffle`: Shuffle the song queue.
+- `/repeat`: Toggle repeat for the current song.
+- `/search <query>`: Search for a song on YouTube.
 
 ## Dependencies
 
