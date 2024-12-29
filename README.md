@@ -24,12 +24,6 @@ This is a simple yet feature-rich music bot for Discord built using Python and t
 pip install -r requirements.txt
 ```
 
-You will need a .env file with your Discord bot token:
-```bash
-TOKEN=your-bot-token-here
-```
-
-
 ## Setup
 
 ### 1. Clone the repository
